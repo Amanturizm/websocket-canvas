@@ -1,6 +1,6 @@
 export interface PixelCoordinate {
-  x: string;
-  y: string;
+  x: number;
+  y: number;
 };
 
 export interface WSMessage {

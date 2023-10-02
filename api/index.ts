@@ -10,6 +10,7 @@ expressWs(app);
 const port = 8000;
 
 app.use(cors());
+app.use(express.json());
 
 const router = express.Router();
 
@@ -17,11 +18,9 @@ const activeConnections: ActiveConnections = {};
 
 router.ws('/canvas', (ws, req) => {
   const id = crypto.randomUUID();
-  console.log('Client connected! id=', id);
   activeConnections[id] = ws;
 
   ws.on('close', () => {
-    console.log('Client disconnected! id=', id);
     delete activeConnections[id];
   });
 
@@ -46,8 +45,6 @@ router.ws('/canvas', (ws, req) => {
           }));
         });
         break;
-      default:
-        console.log('Unknown message type:', type);
     }
   });
 });
