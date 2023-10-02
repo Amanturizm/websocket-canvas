@@ -25,13 +25,17 @@ const Canvas = () => {
 
     if (!ws.current) return;
 
-    ws.onclose = () => console.log('ws closed!');
+    ws.current.onclose = () => console.log('ws closed!');
 
     ws.current.onmessage = event => {
-      const decodedMessage = JSON.parse(event.data) as IncomingMessage;
+      const { type, payload } = JSON.parse(event.data) as IncomingMessage;
 
-      if (decodedMessage.type === 'NEW_MESSAGE') {
-        setPixels(prevState => [ ...prevState, decodedMessage.payload.text ]);
+      console.log('ok')
+      switch (type) {
+        case 'SET_MESSAGES':
+          setPixels(prevState => [ ...prevState, ...payload ]);
+        case 'NEW_MESSAGE':
+          setPixels(prevState => [ ...prevState, payload ]);
       }
     };
 
@@ -40,7 +44,7 @@ const Canvas = () => {
         ws.current.close();
       }
     };
-  }, [ws.current]);
+  }, []);
 
   const sendMessage = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isMouseDown || !ws.current || !canvasRef.current) return;

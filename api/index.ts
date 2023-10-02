@@ -2,7 +2,7 @@ import express from 'express';
 import expressWs from 'express-ws';
 import cors from 'cors';
 import * as crypto from 'crypto';
-import { ActiveConnections, IncomingMessage } from './types';
+import { ActiveConnections, IncomingMessage, PixelCoordinate } from './types';
 
 const app = express();
 expressWs(app);
@@ -16,7 +16,9 @@ const router = express.Router();
 
 const activeConnections: ActiveConnections = {};
 
-router.ws('/canvas', (ws, req) => {
+const pixelsDb: string[] = [];
+
+router.ws('/canvas', ws => {
   const id = crypto.randomUUID();
   activeConnections[id] = ws;
 
@@ -24,24 +26,22 @@ router.ws('/canvas', (ws, req) => {
     delete activeConnections[id];
   });
 
-  let username = 'Anonymous';
+  ws.send(JSON.stringify({
+    type: 'SET_MESSAGES',
+    payload: pixelsDb,
+  }));
 
   ws.on('message', (msg) => {
     const { type, payload } = JSON.parse(msg.toString()) as IncomingMessage;
 
     switch (type) {
-      case 'SET_USERNAME':
-        username = payload;
-        break;
       case 'SEND_MESSAGE':
+        pixelsDb.push(payload);
         Object.keys(activeConnections).forEach(connId => {
           const conn = activeConnections[connId];
           conn.send(JSON.stringify({
             type: 'NEW_MESSAGE',
-            payload: {
-              username,
-              text: payload
-            },
+            payload,
           }));
         });
         break;
