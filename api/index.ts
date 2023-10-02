@@ -2,7 +2,7 @@ import express from 'express';
 import expressWs from 'express-ws';
 import cors from 'cors';
 import * as crypto from 'crypto';
-import { ActiveConnections, IncomingMessage, PixelCoordinate } from './types';
+import { ActiveConnections, IncomingMessage } from './types';
 
 const app = express();
 expressWs(app);

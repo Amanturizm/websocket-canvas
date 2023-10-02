@@ -4,74 +4,84 @@ import { IncomingMessage, PixelCoordinate } from '../types';
 
 const Canvas = () => {
   const [pixels, setPixels] = useState<PixelCoordinate[]>([]);
-
   const [isMouseDown, setIsMouseDown] = useState<boolean>(false);
+  const [currentColor, setCurrentColor] = useState<string>('#000000');
 
-  const ws = useRef<WebSocket | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     if (!canvasRef) return;
 
     const ctx = canvasRef.current.getContext('2d');
 
-    pixels.forEach(pixel => {
+    pixels.forEach((pixel) => {
+      ctx.fillStyle = pixel.color;
       ctx.fillRect(pixel.x, pixel.y, 2, 2);
     });
   }, [pixels]);
 
   useEffect(() => {
-    ws.current = new WebSocket(wsUrl + 'canvas');
+    wsRef.current = new WebSocket(wsUrl + 'canvas');
 
-    if (!ws.current) return;
+    if (!wsRef.current) return;
 
-    ws.current.onclose = () => console.log('ws closed!');
+    wsRef.current.onclose = () => console.log('ws closed!');
 
-    ws.current.onmessage = event => {
+    wsRef.current.onmessage = (event) => {
       const { type, payload } = JSON.parse(event.data) as IncomingMessage;
 
-      console.log('ok')
       switch (type) {
         case 'SET_MESSAGES':
-          setPixels(prevState => [ ...prevState, ...payload ]);
+          setPixels((prevState) => [...prevState, ...payload]);
+          break;
         case 'NEW_MESSAGE':
-          setPixels(prevState => [ ...prevState, payload ]);
+          setPixels((prevState) => [...prevState, payload]);
+          break;
       }
     };
 
     return () => {
-      if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-        ws.current.close();
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
       }
     };
   }, []);
 
   const sendMessage = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isMouseDown || !ws.current || !canvasRef.current) return;
+    if (!isMouseDown || !canvasRef.current || !wsRef.current) return;
 
-    if (ws.current.readyState === WebSocket.OPEN) {
-      const pixelCoordinate: PixelCoordinate = {
-        x: e.pageX - canvasRef.current.offsetLeft,
-        y: e.pageY - canvasRef.current.offsetTop,
-      };
+    const pixelCoordinate: PixelCoordinate = {
+      x: e.pageX - canvasRef.current.offsetLeft,
+      y: e.pageY - canvasRef.current.offsetTop,
+      color: currentColor,
+    };
 
-      ws.current.send(JSON.stringify({
-        type: 'SEND_MESSAGE',
-        payload: pixelCoordinate,
-      }));
-    }
+    wsRef.current.send(JSON.stringify({ type: 'SEND_MESSAGE', payload: pixelCoordinate }));
   };
 
   return (
-    <canvas
-      width={800}
-      height={400}
-      ref={canvasRef}
-      onMouseMove={sendMessage}
-      onMouseDown={() => setIsMouseDown(true)}
-      onMouseOut={() => setIsMouseDown(false)}
-      onMouseUp={() => setIsMouseDown(false)}
-    />
+    <div className="d-flex flex-column justify-content-center align-items-center mt-5">
+      <input
+        className="form-control form-control-color mb-2"
+        style={{ width: 60, height: 60 }}
+        type="color"
+        value={currentColor}
+        onChange={(e) => setCurrentColor(e.target.value)}
+      />
+
+      <canvas
+        className="border border-2 border-dark rounded-4"
+        style={{ cursor: 'crosshair' }}
+        width={800}
+        height={400}
+        ref={canvasRef}
+        onMouseMove={sendMessage}
+        onMouseDown={() => setIsMouseDown(true)}
+        onMouseOut={() => setIsMouseDown(false)}
+        onMouseUp={() => setIsMouseDown(false)}
+      />
+    </div>
   );
 };
 
